@@ -32,7 +32,7 @@ Messaging: RabbitMQ with MassTransit v8 (free fallback if needed). Telemetry: Op
 
 ## Roadmap (transition architectures, see E1 in the documentation)
 
-- [ ] **TA-0 Foundation:** .NET 10, CI, local stack (this commit)
+- [x] **TA-0 Foundation:** .NET 10, CI, local stack (gate G-0 passed 2026-10-24)
 - [ ] TA-1 Platform and edge: cluster, observability, Keycloak, YARP gateway, rate limits
 - [ ] **TA-2 Browse:** Catalogue service and React storefront (first stopping point)
 - [ ] TA-3 Basket

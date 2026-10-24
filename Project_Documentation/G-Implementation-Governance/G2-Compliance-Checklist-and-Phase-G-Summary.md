@@ -42,7 +42,7 @@ At each gate (G1 section 7) the Architect opens this document, updates the **Sta
 | REQ-24 | Liveness, readiness, correlation ids | Endpoint and trace check | G-2 | Not started |
 | REQ-25 | Gateway limits with 429 and Retry-After | SP-3, T-4 | G-1, G-2 | Not started |
 | REQ-26 | Services validate tokens and scopes | Test bypassing gateway | G-2 | Not started |
-| REQ-27 | No secrets in source, images, logs | Secret scan in CI | G-0 | Not started |
+| REQ-27 | No secrets in source, images, logs | Secret scan in CI | G-0 | Evidenced (G-0: gitleaks job green, run 40114282554) |
 | REQ-28 | Scanned, signed images with SBOM | Pipeline evidence | G-2 | Not started |
 | REQ-29 | Non-root, default-deny network policy | Cluster policy check | G-2 | Not started |
 | REQ-30 | T-1 to T-8 pass before first production release | Test report | G-6, G-8 | Not started |
@@ -50,7 +50,7 @@ At each gate (G1 section 7) the Architect opens this document, updates the **Sta
 | REQ-32 | SLOs, dashboards, alerts for Tier 1 | Dashboard inventory | G-2, G-7 | Not started |
 | REQ-33 | Expand and contract changes | Change review sample | G-4, G-7 | Not started |
 | REQ-34 | Infrastructure as code, reproducible | Rebuild environment from code | G-2 | Not started |
-| REQ-35 | Supported LTS versions | Version check against D2 watchlist | G-0, every gate | Not started |
+| REQ-35 | Supported LTS versions | Version check against D2 watchlist | G-0, every gate | In progress (G-0: .NET 10, MongoDB 8.0 checked; re-check each gate) |
 
 ## 3. Principle checks (applied at every gate)
 
@@ -74,6 +74,12 @@ At each gate (G1 section 7) the Architect opens this document, updates the **Sta
 | ID | Date | Deviation | Requirement or ADR | Type | End date or ADR | Approved by |
 |---|---|---|---|---|---|---|
 | (none yet) | | | | | | |
+
+## 4a. Gate log
+
+| Gate | Date | Outcome | Evidence | Notes |
+|---|---|---|---|---|
+| G-0 (after TA-0) | 2026-10-24 | **Go** | CI run [40114282554](https://github.com/pandehrushikesh/shopstream/actions/runs/40114282554) green (build with warnings as errors, 25 unit and 8 integration tests, secret scan). Commit 3d8e3b7 | Advisories on transitive packages (SharpCompress, Snappier, SSH.NET) fixed by pins in `Directory.Packages.props`. Condition: remove pins when parent packages update. ADR-001 still Provisional (H1 section 8.1) |
 
 ## 5. Phase G summary
 
