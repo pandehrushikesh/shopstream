@@ -7,12 +7,16 @@
   <ItemGroup>
     <!-- Runtime -->
     <PackageVersion Include="MongoDB.Driver" Version="2.30.0" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.5" />
     <PackageVersion Include="Asp.Versioning.Http" Version="8.1.0" />
     <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.9.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="8.0.3" />
     <PackageVersion Include="Serilog.Sinks.Seq" Version="8.0.0" />
+    <!-- Spikes (see spikes/) -->
+    <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
+    <PackageVersion Include="StackExchange.Redis" Version="3.4.5" />
+    <PackageVersion Include="Testcontainers.Redis" Version="3.10.0" />
     <!-- Transitive pins: patched versions of indirect dependencies with known advisories (2026-10-24).
          SharpCompress and Snappier come in through MongoDB.Driver 2.30 (compression is not enabled in our
          connection settings). SSH.NET comes in through Testcontainers (tests only). Remove a pin when its
