@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\ShopStream.BuildingBlocks\ShopStream.BuildingBlocks.csproj" />
+  </ItemGroup>
+</Project>

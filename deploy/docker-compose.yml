@@ -1,0 +1,85 @@
+# ShopStream local infrastructure. Dev-only: no TLS, weak credentials, MongoDB without auth.
+name: shopstream
+
+services:
+  mongo:
+    image: mongo:8.0
+    ports: ["27017:27017"]
+    volumes: [mongo-data:/data/db]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shopstream}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shopstream_dev}
+    ports: ["5432:5432"]
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-shopstream}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-shopstream}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-shopstream_dev}
+    ports: ["5672:5672", "15672:15672"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  seq:
+    image: datalust/seq:2024
+    environment:
+      ACCEPT_EULA: "Y"
+      SEQ_FIRSTRUN_NOAUTHENTICATION: "true"
+    ports: ["5341:80"]
+    volumes: [seq-data:/data]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: start-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+    ports: ["8080:8080"]
+    volumes: [keycloak-data:/opt/keycloak/data]
+    # No healthcheck: the image ships without curl. We wait on it explicitly in Phase 2.
+
+  catalog-api:
+    build:
+      context: ..
+      dockerfile: src/Services/Catalog/ShopStream.Catalog.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Mongo__ConnectionString: mongodb://mongo:27017
+      Mongo__SeedOnStartup: "true"
+      Seq__Url: http://seq:80
+    ports: ["5101:8080"]
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  mongo-data:
+  postgres-data:
+  seq-data:
+  keycloak-data:

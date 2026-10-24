@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="MongoDB.Driver" />
+    <ProjectReference Include="..\ShopStream.Catalog.Application\ShopStream.Catalog.Application.csproj" />
+  </ItemGroup>
+</Project>

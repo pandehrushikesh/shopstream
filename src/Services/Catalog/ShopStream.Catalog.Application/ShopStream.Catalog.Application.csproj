@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <ProjectReference Include="..\ShopStream.Catalog.Domain\ShopStream.Catalog.Domain.csproj" />
+  </ItemGroup>
+</Project>
