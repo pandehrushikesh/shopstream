@@ -19,7 +19,7 @@ public sealed class AdmissionLimiterTests(RedisFixture fixture) : IClassFixture<
     {
         var cs = (connection ?? fixture.ConnectionString) + ",abortConnect=false,connectTimeout=300,asyncTimeout=300";
         var mux = ConnectionMultiplexer.Connect(cs);
-        return new AdmissionLimiter(mux, new LimiterOptions { Instances = instances }, TimeProvider.System, NullLogger<AdmissionLimiter>.Instance);
+        return new AdmissionLimiter(mux, new LimiterOptions { Instances = instances, StoreTimeout = TimeSpan.FromSeconds(1) }, TimeProvider.System, NullLogger<AdmissionLimiter>.Instance);
     }
 
     private static string Unique() => Guid.NewGuid().ToString("N");
@@ -114,7 +114,7 @@ public sealed class AdmissionLimiterTests(RedisFixture fixture) : IClassFixture<
     {
         // Two bad calls then a healthy store: use a short breaker to prove recovery logic compiles and runs.
         var mux = ConnectionMultiplexer.Connect(fixture.ConnectionString + ",abortConnect=false");
-        var limiter = new AdmissionLimiter(mux, new LimiterOptions { Instances = 3, BreakerDuration = TimeSpan.FromMilliseconds(50) },
+        var limiter = new AdmissionLimiter(mux, new LimiterOptions { Instances = 3, BreakerDuration = TimeSpan.FromMilliseconds(50), StoreTimeout = TimeSpan.FromSeconds(1) },
             TimeProvider.System, NullLogger<AdmissionLimiter>.Instance);
         var policy = new LimitPolicy("t7", LimitKind.TokenBucket, Rate: 1, Burst: 5);
         var d = await limiter.AcquireAsync(policy, Unique());

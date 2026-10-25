@@ -40,7 +40,7 @@ At each gate (G1 section 7) the Architect opens this document, updates the **Sta
 | REQ-22 | Versioned APIs and messages, contract tests | Contract test suite | G-3 | Not started |
 | REQ-23 | Hot-item reservations without oversell | SP-2 result, T-3 | G-5, G-6 | Not started |
 | REQ-24 | Liveness, readiness, correlation ids | Endpoint and trace check | G-2 | Not started |
-| REQ-25 | Gateway limits with 429 and Retry-After | SP-3, T-4 | G-1, G-2 | Not started |
+| REQ-25 | Gateway limits with 429 and Retry-After | SP-3, T-4 | G-1, G-2 | In progress (SP-3 pass 2026-10-25: shared limits, 429, fail-safe. Production build WP-05 and T-4 pending) |
 | REQ-26 | Services validate tokens and scopes | Test bypassing gateway | G-2 | Not started |
 | REQ-27 | No secrets in source, images, logs | Secret scan in CI | G-0 | Evidenced (G-0: gitleaks job green, run 40114282554) |
 | REQ-28 | Scanned, signed images with SBOM | Pipeline evidence | G-2 | Not started |
@@ -80,6 +80,7 @@ At each gate (G1 section 7) the Architect opens this document, updates the **Sta
 | Gate | Date | Outcome | Evidence | Notes |
 |---|---|---|---|---|
 | G-0 (after TA-0) | 2026-10-24 | **Go** | CI run [40114282554](https://github.com/pandehrushikesh/shopstream/actions/runs/40114282554) green (build with warnings as errors, 25 unit and 8 integration tests, secret scan). Commit 3d8e3b7 | Advisories on transitive packages (SharpCompress, Snappier, SSH.NET) fixed by pins in `Directory.Packages.props`. Condition: remove pins when parent packages update. ADR-001 still Provisional (H1 section 8.1) |
+| G-1 (partial: SP-3 done, SP-1 pending) | 2026-10-25 | **Go for SP-3** | `spikes/SP3-RateLimiting/RESULTS.md`: shared limit 659 vs about 660, admission 18,076 vs about 18,100, reject p95 4.56 ms, outage fallback with max latency 196 ms, 7 of 7 tests | Two defects found and fixed in the spike (client timeout, breaker herd). Findings F-1 to F-6 feed WP-05. Gate G-1 closes after SP-1 |
 
 ## 5. Phase G summary
 

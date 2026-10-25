@@ -63,6 +63,8 @@ Consequences, stated openly so they are not forgotten:
 | CH-002 | 2026-10-24 | H-T7: sponsor wants cloud-neutral and one region with recovery site | Incremental | D1 cloud-neutral, warm standby | D1, D4 |
 | CH-003 | 2026-10-24 | Sponsor decision on data engines | Incremental | ADR-006: PostgreSQL, MongoDB, Redis-compatible | D2, ADR-006 |
 
+| CH-004 | 2026-10-25 | H-T3: SP-3 result contradicts the implicit assumption that client timeouts bound a store call | Simplification | Production limiter gets a call-site deadline and a half-open breaker. D4 4.1 text (fail-safe, local = global / N) is unchanged and confirmed | SP-3 RESULTS.md, A5 (R-28) |
+
 (Earlier changes C-01 to C-05 are recorded in B6.)
 
 ## 7. Requirements management

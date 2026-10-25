@@ -39,6 +39,7 @@ Scoring: Likelihood and Impact on a scale of Low / Medium / High.
 | R-25 | Shadow comparison noise hides real defects | Medium | Medium | Agree tolerances in advance | Team T4 |
 | R-26 | Self-review becomes a rubber stamp | Medium | Medium | Checklist-based, paused review, evidence links required | Lead Architect |
 | R-27 | Governance overhead slows a one-person project | Medium | Low | Short checklist, review only at gates | Lead Architect |
+| R-28 | Local rate-limit fallback divides by a wrong instance count when the gateway autoscales | Medium | Medium | Take the divisor from the deployment, refresh it (SP-3 F-4, WP-05) | Team T4 |
 | R-10 | Team boundaries T2/T3 create heavy coupling around checkout | Medium | Medium | Define the saga contract in Phase C. Revisit boundaries if the contract is chatty | Lead Architect |
 
 ## Assumptions
@@ -90,3 +91,4 @@ Scoring: Likelihood and Impact on a scale of Low / Medium / High.
 | 1.3 | 2026-10-24 | Lead Architect | Phase E: R-18 to R-22, A-11, A-12 added |
 | 1.4 | 2026-10-24 | Lead Architect | Phase F: R-23 to R-25, A-13, A-14 added |
 | 1.5 | 2026-10-24 | Lead Architect | Phase G: R-26, R-27 added |
+| 1.6 | 2026-10-25 | Lead Architect | SP-3 done: R-28 added |

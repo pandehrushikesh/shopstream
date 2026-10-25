@@ -7,7 +7,7 @@ namespace ShopStream.Spike.Gateway;
 /// Spike simplification: the user id comes from the X-Spike-User header. In the real gateway it comes from the
 /// validated session or token (ADR-008). X-Forwarded-For is trusted here; production must only trust the edge proxy.
 /// </summary>
-public sealed class RateLimitMiddleware(RequestDelegate next, AdmissionLimiter limiter, LimiterOptions options)
+public sealed class RateLimitMiddleware(RequestDelegate next, AdmissionLimiter limiter, LimiterOptions options, ILogger<RateLimitMiddleware> log)
 {
     public async Task InvokeAsync(HttpContext ctx)
     {
@@ -30,7 +30,9 @@ public sealed class RateLimitMiddleware(RequestDelegate next, AdmissionLimiter l
             if (!await Check(ctx, LimitPolicies.PlaceOrderRate, user)) return;
             if (!await Check(ctx, LimitPolicies.CheckoutAdmission, "all", "high-demand")) return;
 
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
             var inflight = await limiter.AcquireAsync(LimitPolicies.PlaceOrderInFlight, user);
+            LogIfSlow(LimitPolicies.PlaceOrderInFlight, inflight, started);
             if (!inflight.Allowed) { await Reject(ctx, LimitPolicies.PlaceOrderInFlight, inflight, "duplicate-in-flight"); return; }
             try { Tag(ctx, inflight); await next(ctx); }
             finally { await limiter.ReleaseAsync(LimitPolicies.PlaceOrderInFlight, user, inflight.Source); }
@@ -48,11 +50,21 @@ public sealed class RateLimitMiddleware(RequestDelegate next, AdmissionLimiter l
 
     private async Task<bool> Check(HttpContext ctx, LimitPolicy policy, string key, string problem = "rate-limited")
     {
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
         var d = await limiter.AcquireAsync(policy, key);
+        LogIfSlow(policy, d, started);
         Tag(ctx, d);
         if (d.Allowed) return true;
         await Reject(ctx, policy, d, problem);
         return false;
+    }
+
+    private void LogIfSlow(LimitPolicy policy, Decision d, long startedTimestamp)
+    {
+        var ms = System.Diagnostics.Stopwatch.GetElapsedTime(startedTimestamp).TotalMilliseconds;
+        if (ms > 100)
+            log.LogWarning("Slow limit decision: {Ms:F0} ms for {Policy} via {Source}, store considered up: {Up}",
+                ms, policy.Name, d.Source, limiter.StoreConsideredUp);
     }
 
     private static void Tag(HttpContext ctx, Decision d) => ctx.Response.Headers["X-RateLimit-Source"] = d.Source.ToString();

@@ -15,6 +15,11 @@ public sealed class LimiterOptions
     public string Redis { get; set; } = "localhost:6379,abortConnect=false,connectTimeout=500,asyncTimeout=150";
     /// <summary>How long to stay on local limits after a store failure before trying the store again.</summary>
     public TimeSpan BreakerDuration { get; set; } = TimeSpan.FromSeconds(5);
+    /// <summary>
+    /// Hard deadline for one store call. The client library enforces its own timeout on a heartbeat of about one
+    /// second, so a call on a connection that just died can hang for seconds. This deadline is ours and is exact.
+    /// </summary>
+    public TimeSpan StoreTimeout { get; set; } = TimeSpan.FromMilliseconds(100);
 }
 
 /// <summary>
@@ -74,7 +79,10 @@ public sealed class AdmissionLimiter
     private readonly LimiterOptions _options;
     private readonly TimeProvider _time;
     private readonly ILogger<AdmissionLimiter> _log;
-    private long _redisRetryAt; // TimeProvider timestamp until which the store is considered down
+    // Breaker state. 0 = store healthy. Otherwise the timestamp before which we stay on local limits.
+    // After that time the breaker is half-open: exactly one request probes the store, everyone else stays local.
+    private long _redisRetryAt;
+    private int _probing;
 
     private readonly ConcurrentDictionary<string, LocalBucket> _buckets = new();
     private readonly ConcurrentDictionary<string, LocalWindow> _windows = new();
@@ -85,21 +93,59 @@ public sealed class AdmissionLimiter
         _redis = redis; _options = options; _time = time; _log = log;
     }
 
-    public bool StoreConsideredUp => _time.GetTimestamp() >= Volatile.Read(ref _redisRetryAt);
+    public bool StoreConsideredUp
+    {
+        get { var r = Volatile.Read(ref _redisRetryAt); return r == 0 || _time.GetTimestamp() >= r; }
+    }
 
     public async ValueTask<Decision> AcquireAsync(LimitPolicy policy, string key)
     {
-        if (StoreConsideredUp)
+        if (TryEnterStore(out var isProbe))
         {
-            try { return await AcquireRedisAsync(policy, key).ConfigureAwait(false); }
+            try
+            {
+                var d = await AcquireRedisAsync(policy, key).ConfigureAwait(false);
+                if (isProbe || Volatile.Read(ref _redisRetryAt) != 0) MarkStoreUp();
+                return d;
+            }
             catch (Exception ex) when (ex is RedisException or TimeoutException)
             {
-                Volatile.Write(ref _redisRetryAt,
-                    _time.GetTimestamp() + (long)(_options.BreakerDuration.TotalSeconds * _time.TimestampFrequency));
-                _log.LogWarning(ex, "Shared limit store unavailable. Using local limits for {Seconds}s", _options.BreakerDuration.TotalSeconds);
+                MarkStoreDown(ex);
+            }
+            finally
+            {
+                if (isProbe) Volatile.Write(ref _probing, 0);
             }
         }
         return AcquireLocal(policy, key);
+    }
+
+    /// <summary>Healthy: everyone uses the store. Down: nobody does. Half-open: one probe at a time.</summary>
+    private bool TryEnterStore(out bool isProbe)
+    {
+        isProbe = false;
+        var retryAt = Volatile.Read(ref _redisRetryAt);
+        if (retryAt == 0) return true;
+        if (_time.GetTimestamp() < retryAt) return false;
+        isProbe = Interlocked.CompareExchange(ref _probing, 1, 0) == 0;
+        return isProbe;
+    }
+
+    private void MarkStoreDown(Exception ex)
+    {
+        var wasUp = Volatile.Read(ref _redisRetryAt) == 0;
+        Volatile.Write(ref _redisRetryAt,
+            _time.GetTimestamp() + (long)(_options.BreakerDuration.TotalSeconds * _time.TimestampFrequency));
+        if (wasUp)
+            _log.LogWarning(ex, "Shared limit store unavailable. Using local limits, probing every {Seconds}s", _options.BreakerDuration.TotalSeconds);
+        else
+            _log.LogDebug(ex, "Probe of shared limit store failed");
+    }
+
+    private void MarkStoreUp()
+    {
+        if (Interlocked.Exchange(ref _redisRetryAt, 0) != 0)
+            _log.LogInformation("Shared limit store is back. Returning to shared limits");
     }
 
     /// <summary>Only needed for Concurrency policies. Pass the source returned by <see cref="AcquireAsync"/>.</summary>
@@ -112,7 +158,7 @@ public sealed class AdmissionLimiter
         }
         try
         {
-            await _redis.GetDatabase().ScriptEvaluateAsync(ConcurrencyReleaseLua, [RedisKeyFor(policy, key)]).ConfigureAwait(false);
+            await WithDeadline(_redis.GetDatabase().ScriptEvaluateAsync(ConcurrencyReleaseLua, [RedisKeyFor(policy, key)])).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is RedisException or TimeoutException)
         {
@@ -126,16 +172,28 @@ public sealed class AdmissionLimiter
     {
         var db = _redis.GetDatabase();
         var k = RedisKeyFor(p, key);
-        RedisResult raw = p.Kind switch
+        Task<RedisResult> call = p.Kind switch
         {
-            LimitKind.TokenBucket => await db.ScriptEvaluateAsync(TokenBucketLua, [k], [p.Rate, p.Burst, 1]).ConfigureAwait(false),
-            LimitKind.SlidingWindow => await db.ScriptEvaluateAsync(SlidingWindowLua, [k],
-                [(long)p.Window.TotalMilliseconds, p.Limit, Guid.NewGuid().ToString("N")]).ConfigureAwait(false),
-            LimitKind.Concurrency => await db.ScriptEvaluateAsync(ConcurrencyAcquireLua, [k], [p.Limit, 30_000]).ConfigureAwait(false),
+            LimitKind.TokenBucket => db.ScriptEvaluateAsync(TokenBucketLua, [k], [p.Rate, p.Burst, 1]),
+            LimitKind.SlidingWindow => db.ScriptEvaluateAsync(SlidingWindowLua, [k],
+                [(long)p.Window.TotalMilliseconds, p.Limit, Guid.NewGuid().ToString("N")]),
+            LimitKind.Concurrency => db.ScriptEvaluateAsync(ConcurrencyAcquireLua, [k], [p.Limit, 30_000]),
             _ => throw new ArgumentOutOfRangeException(nameof(p))
         };
+        var raw = await WithDeadline(call).ConfigureAwait(false);
         var r = (RedisResult[])raw!;
         return new Decision((long)r[0] == 1, TimeSpan.FromMilliseconds((long)r[1]), DecisionSource.Redis);
+    }
+
+    /// <summary>Throws TimeoutException if the store has not answered within the deadline. The abandoned call is observed so it cannot surface later.</summary>
+    private async Task<T> WithDeadline<T>(Task<T> call)
+    {
+        try { return await call.WaitAsync(_options.StoreTimeout).ConfigureAwait(false); }
+        catch (TimeoutException)
+        {
+            _ = call.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
+            throw;
+        }
     }
 
     private static RedisKey RedisKeyFor(LimitPolicy p, string key) => $"rl:{p.Name}:{key}";
