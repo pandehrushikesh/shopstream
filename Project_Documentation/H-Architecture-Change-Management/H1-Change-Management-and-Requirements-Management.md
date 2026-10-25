@@ -64,6 +64,7 @@ Consequences, stated openly so they are not forgotten:
 | CH-003 | 2026-10-24 | Sponsor decision on data engines | Incremental | ADR-006: PostgreSQL, MongoDB, Redis-compatible | D2, ADR-006 |
 
 | CH-004 | 2026-10-25 | H-T3: SP-3 result contradicts the implicit assumption that client timeouts bound a store call | Simplification | Production limiter gets a call-site deadline and a half-open breaker. D4 4.1 text (fail-safe, local = global / N) is unchanged and confirmed | SP-3 RESULTS.md, A5 (R-28) |
+| CH-005 | 2026-10-25 | Sponsor decision: keep an Interview Companion (three Word documents) as part of the evidence trail | Simplification | Updating the companion documents becomes part of closing each gate (G1 definition of done, item 8). Documents live in `Interview-Companion/` | G1, 00-Index |
 
 (Earlier changes C-01 to C-05 are recorded in B6.)
 

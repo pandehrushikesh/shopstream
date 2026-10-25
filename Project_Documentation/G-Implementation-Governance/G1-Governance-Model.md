@@ -44,6 +44,7 @@ A service may go live only with all of:
 5. Threat-model review and data-class declaration (D3).
 6. Contract tests for every API and message it exposes (PR-05).
 7. A proven rollback.
+8. The Interview Companion documents are updated: evidence tags moved, assumed numbers replaced by measured ones, new stories and questions added (CH-005). Applies at every gate closure, not per service.
 
 A work package that is not a service (platform work, spikes) uses the relevant subset, stated in its contract.
 

@@ -62,6 +62,16 @@ Final review (H1 section 8) passed on 2026-10-24 with one open item: ADR-001 sta
 | G2 | [Compliance Checklist and Phase G Summary](G-Implementation-Governance/G2-Compliance-Checklist-and-Phase-G-Summary.md) | G | **Approved v1.0** |
 | H1 | [Change Management and Requirements Management](H-Architecture-Change-Management/H1-Change-Management-and-Requirements-Management.md) | H | **Approved v1.0** |
 
+### Interview Companion (outside the ADM, updated at each gate)
+
+| ID | Document | Status |
+|---|---|---|
+| IC1 | [TOGAF in Practice](Interview-Companion/01-TOGAF-in-Practice.docx) | v0.1 living |
+| IC2 | [API Performance and Scale](Interview-Companion/02-API-Performance-and-Scale.docx) | v0.1 living |
+| IC3 | [Microservices Architecture](Interview-Companion/03-Microservices-Architecture.docx) | v0.1 living |
+
+Word documents (Aptos) that explain the work for interview revision. Every claim carries an evidence tag: Designed, Proven in spike, Built or Planned. Refreshed when a gate closes (G1 definition of done, item 8; CH-005).
+
 ## 4. Identifier conventions
 
 Stable IDs make traceability possible: *driver -> goal -> objective -> requirement -> component*.
